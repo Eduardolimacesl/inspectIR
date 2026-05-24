@@ -35,5 +35,5 @@ async def capturar_notas_portal_sefin(cpf: str, data_ini: str, data_fim: str, si
         return await capturar_notas_portal_sefin(cpf, data_ini, data_fim, simulado=True)
 
 if __name__ == "__main__":
-    dados = asyncio.run(capturar_notas_portal_sefin("111.222.333-44", "01/01/2025", "31/12/2025", simulado=True))
+    dados = asyncio.run(capturar_notas_portal_sefin("007.999.163-74", "01/01/2025", "31/12/2025", simulado=True))
     print(f"[TESTE] Notas retornadas: {len(dados)}")
