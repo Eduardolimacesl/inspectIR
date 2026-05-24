@@ -62,6 +62,33 @@ specs/tax_rules_schema.json — SSOT for tax constants (TETO_EDUCACAO_INDIVIDUAL
 - `test_live_gemini.py` — smoke tests requiring real `GEMINI_API_KEY` and network
 
 <!-- SPECKIT START -->
-For additional context about technologies to be used, project structure,
-shell commands, and other important information, read the current plan
+
+## Speckit — SDD Workflow
+
+This project uses [Speckit](https://speckit.dev) for spec-driven development. Skills are in `.claude/skills/`. Artifacts live inside the active feature branch under `.specify/`.
+
+### Full cycle (order matters)
+
+| Step | Skill | Purpose |
+|------|-------|---------|
+| 0 | `/speckit-constitution` | Define project principles (one-time setup) |
+| 1 | `/speckit-specify <feature>` | Create `spec.md` from natural language description |
+| 2 | `/speckit-clarify` | Fill gaps in spec — asks up to 5 targeted questions, encodes answers back |
+| 3 | `/speckit-plan` | Generate `plan.md` — design decisions, architecture notes |
+| 4 | `/speckit-analyze` | Cross-check spec/plan/tasks for consistency before coding |
+| 5 | `/speckit-tasks` | Generate dependency-ordered `tasks.md` |
+| 6 | `/speckit-implement` | Execute tasks from `tasks.md` |
+| 7 | `/speckit-checklist` | Generate review checklist post-implementation |
+| 8 | `/speckit-taskstoissues` | Sync tasks to GitHub issues (optional) |
+
+### Git hooks (auto-configured in `.specify/extensions.yml`)
+
+Speckit auto-commits before/after each phase. Hooks run via `speckit.git.*` commands — no manual git needed during the cycle.
+
+### Shortcuts
+
+- Full cycle in one command: `/speckit` (runs specify → plan → tasks → implement)
+- New feature branch: `/speckit-git-feature`
+- Init git repo: `/speckit-git-initialize`
+
 <!-- SPECKIT END -->
