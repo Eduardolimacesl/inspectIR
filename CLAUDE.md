@@ -2,9 +2,13 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Project overview
+
+**InspectIR** is a Brazilian personal income-tax (IRPF) audit assistant. It automates four stages: (1) **extraction** of electronic invoices (NF-e/NFC-e/NFS-e) from the Fortaleza SEFIN portal via Playwright, (2) **AI audit** that classifies each invoice as Saúde / Educação / Não Dedutível with a legal justification using Google Gemini, (3) a **deductible IRPF calculator** (`MotorCalculoIR`) that applies legal caps and estimates the refund, and (4) a **Deep Tax Advisor** that produces a strategic markdown report (Simplificado vs. Completo, PGBL optimization). The UI is a Streamlit app. Code identifiers and user-facing text are in Portuguese.
+
 ## Commands
 
-> **Note:** Use `python3` (3.12). The `.venv` was created with Python 3.14 which lacks `_ctypes` — `pandas` and `streamlit` fail there.
+> **Note:** Use `python3` (3.11+; 3.12 recommended). A local `.venv` created with Python 3.14 lacks `_ctypes`, so `pandas` and `streamlit` fail there — recreate the venv with 3.11/3.12 if you hit import errors.
 
 ```bash
 # Run app
@@ -39,11 +43,14 @@ application/use_cases.py — Orchestration: ExtrairNotasUseCase, AuditarNotasUse
                           DeepTaxAdvisorUseCase
 infrastructure/services.py — Adapters: AdaptadorGeminiFiscal (LLM), EscritorLeitorNotasLocal (file I/O)
 extractor.py            — Playwright scraper for SEFIN portal (headless=False for manual login)
-app.py                  — Streamlit UI (presentation layer only)
-specs/tax_rules_schema.json — SSOT for tax constants (TETO_EDUCACAO_INDIVIDUAL, ALIQUEOTA_PADRAO)
+app.py                  — Streamlit UI (presentation layer only); 4 tabs: Painel, Notas, Consultoria IA, Processar
+specs/tax_rules_schema.json — SSOT for tax constants + JSON Schema for NotaFiscal / NotaAuditada
+docs/                   — Background design docs (PRD, architecture, spec, SDD guide, model recommendation)
 ```
 
-**Data flow:** `app.py` → use cases → `AdaptadorGeminiFiscal.analisar_em_lote()` → `EscritorLeitorNotasLocal` (writes to `inspectir/data/`). Dashboard reads from `inspectir/data/auditoria_final.json`.
+**Data flow:** `app.py` → use cases → `AdaptadorGeminiFiscal.analisar_em_lote()` → `EscritorLeitorNotasLocal` (writes to `inspectir/data/`). The dashboard reads back from `inspectir/data/auditoria_final.json` (audited) and `inspectir/data/notas_brutas.json` (raw). Note the output dir `inspectir/` is lowercase, distinct from the repo root `inspectIR/`.
+
+**Dependencies** (`requirements.txt`): `google-genai` (LLM), `playwright` (scraper), `streamlit` + `pandas` (UI), `openpyxl` (Excel export), `jsonschema` (spec validation in tests), `pytest`.
 
 **Key constraint:** Tax constants (`TETO_EDUCACAO_INDIVIDUAL = 3561.50`, `ALIQUEOTA_PADRAO = 0.275`) come from `specs/tax_rules_schema.json`, not hardcoded — `domain/models.py` loads them at import time. Update the spec file, not the Python constants.
 
