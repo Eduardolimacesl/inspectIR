@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "InspectIR-TaxRulesSpecification",
+  "description": "Especificação formal de dados e regras fiscais aplicadas no ecossistema InspectIR para o IRPF.",
+  "version": "1.1.0",
+  "tax_constants": {
+    "TETO_EDUCACAO_INDIVIDUAL": 3561.50,
+    "ALIQUEOTA_PADRAO_RESTITUICAO": 0.275
+  },
+  "definitions": {
+    "cnpj_pattern": {
+      "type": "string",
+      "pattern": "^\\d{14}$"
+    },
+    "NotaFiscal": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "emitente": { "type": "string" },
+        "cnpj": { "$ref": "#/definitions/cnpj_pattern" },
+        "valor": { "type": "number", "minimum": 0 },
+        "descricao": { "type": "string" },
+        "data": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "emitente", "cnpj", "valor", "descricao", "data"]
+    },
+    "NotaAuditada": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "emitente": { "type": "string" },
+        "cnpj": { "$ref": "#/definitions/cnpj_pattern" },
+        "valor": { "type": "number", "minimum": 0 },
+        "dedutivel": { "type": "boolean" },
+        "categoria": { "type": "string", "enum": ["Saude", "Educacao", "Nao Dedutivel"] },
+        "beneficiario_provavel": { "type": "string" },
+        "justificativa_legal": { "type": "string" }
+      },
+      "required": ["id", "emitente", "cnpj", "valor", "dedutivel", "categoria", "beneficiario_provavel", "justificativa_legal"]
+    }
+  }
+}
