@@ -67,6 +67,8 @@ specs/tax_rules_schema.json — SSOT for tax constants (TETO_EDUCACAO_INDIVIDUAL
 
 This project uses [Speckit](https://speckit.dev) for spec-driven development. Skills are in `.claude/skills/`. Artifacts live inside the active feature branch under `.specify/`.
 
+**Active plan**: `specs/001-inspectir-core-spec/plan.md` (branch `001-inspectir-core-spec`).
+
 ### Full cycle (order matters)
 
 | Step | Skill | Purpose |
