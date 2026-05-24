@@ -2,9 +2,13 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Project overview
+
+**InspectIR** is a Brazilian personal income-tax (IRPF) audit assistant. Four stages: (1) **extraction** of electronic invoices from the Fortaleza SEFIN portal via Playwright, (2) **AI audit** classifying each invoice as Saúde / Educação / Não Dedutível with a legal justification via Google Gemini, (3) a **deterministic IRPF calculator** (`MotorCalculoIR`) that applies legal caps, estimates the refund, computes PGBL limits and recommends Simplificado vs. Completo, and (4) **Excel export** of the audited data for the Receita Federal declaration. The UI is a Streamlit app. Code identifiers and user-facing text are in Portuguese.
+
 ## Commands
 
-> **Note:** Use `python3` (3.12). The `.venv` was created with Python 3.14 which lacks `_ctypes` — `pandas` and `streamlit` fail there.
+> **Note:** Use `python3` (3.11+; 3.12 recommended). NOT 3.14 — it lacks `_ctypes`, breaking `pandas`/`streamlit`. Tests need `pytest`, `openpyxl`, `google-genai` (and a working `cffi`/`_cffi_backend`); they do not import streamlit/pandas/playwright.
 
 ```bash
 # Run app
@@ -33,21 +37,28 @@ Set `GEMINI_API_KEY` env var or enter it in the sidebar at runtime. Tests that h
 DDD + Hexagonal (Ports & Adapters). Domain is fully isolated from infrastructure.
 
 ```
-domain/models.py        — Pure domain: NotaFiscal, NotaAuditada, CNPJ (value object),
-                          Beneficiario, CategoriaFiscal (enum), MotorCalculoIR (service)
+domain/models.py        — Pure domain: NotaFiscal, NotaAuditada, CNPJ + CPF (value objects),
+                          Beneficiario (identity = CPF), CategoriaFiscal (enum),
+                          MotorCalculoIR (service: deductions, PGBL, model recommendation)
 application/use_cases.py — Orchestration: ExtrairNotasUseCase, AuditarNotasUseCase,
-                          DeepTaxAdvisorUseCase
-infrastructure/services.py — Adapters: AdaptadorGeminiFiscal (LLM), EscritorLeitorNotasLocal (file I/O)
+                          DeepTaxAdvisorUseCase, ExportarPlanilhaUseCase
+infrastructure/services.py — Adapters: AdaptadorGeminiFiscal (LLM), EscritorLeitorNotasLocal (file I/O),
+                          ExportadorExcelLocal (openpyxl)
 extractor.py            — Playwright scraper for SEFIN portal (headless=False for manual login)
-app.py                  — Streamlit UI (presentation layer only)
-specs/tax_rules_schema.json — SSOT for tax constants (TETO_EDUCACAO_INDIVIDUAL, ALIQUEOTA_PADRAO)
+app.py                  — Streamlit UI (presentation layer only); 4 tabs: Painel, Notas, Consultoria IA, Processar
+specs/tax_rules_schema.json — SSOT for tax constants + JSON Schema for NotaFiscal / NotaAuditada
+docs/                   — Background design docs (PRD, architecture, spec, SDD guide, model recommendation)
 ```
 
-**Data flow:** `app.py` → use cases → `AdaptadorGeminiFiscal.analisar_em_lote()` → `EscritorLeitorNotasLocal` (writes to `inspectir/data/`). Dashboard reads from `inspectir/data/auditoria_final.json`.
+**Data flow:** `app.py` → use cases → `AdaptadorGeminiFiscal.analisar_em_lote()` → `EscritorLeitorNotasLocal` (writes to `inspectir/data/`). Dashboard reads from `inspectir/data/auditoria_final.json`; export reads brutas+auditoria and writes `.xlsx`.
 
-**Key constraint:** Tax constants (`TETO_EDUCACAO_INDIVIDUAL = 3561.50`, `ALIQUEOTA_PADRAO = 0.275`) come from `specs/tax_rules_schema.json`, not hardcoded — `domain/models.py` loads them at import time. Update the spec file, not the Python constants.
+**Beneficiary identity:** `Beneficiario` is keyed by **CPF** (`CPF` value object, 11 digits). `MotorCalculoIR` groups the education ceiling per CPF (homonyms with distinct CPFs count separately); `nome` is the display fallback when CPF is absent.
 
-**Gemini integration:** `AdaptadorGeminiFiscal` uses `gemini-2.5-flash-preview-09-2025` with `response_mime_type="application/json"` for structured audit output. Uses exponential backoff (4 retries, starting 2s). `DeepTaxAdvisorUseCase` uses the same model for the tax advisory report (markdown output, temperature=0.15).
+**Key constraint:** Tax constants (`TETO_EDUCACAO_INDIVIDUAL = 3561.50`, `ALIQUEOTA_PADRAO = 0.275`, `LIMITE_PGBL_PERCENTUAL = 0.12`, `TETO_DESCONTO_SIMPLIFICADO = 16754.34`) come from `specs/tax_rules_schema.json`, not hardcoded — `domain/models.py` loads them at import time (resilient to missing/malformed JSON). Update the spec file, not the Python constants.
+
+**Deterministic vs. LLM:** PGBL limit / complementary contribution / savings and the Simplificado-vs-Completo decision are computed in `MotorCalculoIR` (`analisar_pgbl`, `recomendar_modelo`) — never by the LLM. `DeepTaxAdvisorUseCase` only sends the pre-computed numbers to Gemini for a Markdown narrative.
+
+**Gemini integration:** `AdaptadorGeminiFiscal` uses `gemini-2.5-flash-preview-09-2025` with `response_mime_type="application/json"` for structured audit output (asks for `beneficiario_cpf` too). Uses exponential backoff (4 retries, starting 2s). `DeepTaxAdvisorUseCase` uses the same model for the advisory narrative (markdown, temperature=0.15).
 
 **Simulated mode:** `ExtrairNotasUseCase` and `extractor.py` both have a `simulado=True` flag that returns hardcoded fixture notes — use this for development/testing without hitting the SEFIN portal.
 

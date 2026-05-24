@@ -42,13 +42,13 @@ entram em `specs/tax_rules_schema.json`, nunca hardcoded.
 
 | Princípio | Status | Notas |
 |-----------|--------|-------|
-| I. Domain Purity (NON-NEGOTIABLE) | ⚠️ AÇÃO | US1/CNPJ/MotorCalculoIR já puros. **US2 viola hoje**: cálculos de PGBL/modelo estão em `DeepTaxAdvisorUseCase` (application) como prompt LLM. Plano move a aritmética para `MotorCalculoIR` (domínio); LLM fica só com a narrativa/justificativa. |
-| II. Spec-Driven Development (NON-NEGOTIABLE) | ⚠️ AÇÃO | Constantes existentes (`TETO_EDUCACAO_INDIVIDUAL`, `ALIQUEOTA_PADRAO_RESTITUICAO`) já no schema. **Adicionar ao schema**: `LIMITE_PGBL_PERCENTUAL = 0.12` e `TETO_DESCONTO_SIMPLIFICADO = 16754.34`. Proibido hardcode. |
+| I. Domain Purity (NON-NEGOTIABLE) | ✅ RESOLVIDO | A aritmética de PGBL/modelo foi movida para `MotorCalculoIR` (`analisar_pgbl`, `recomendar_modelo`); `DeepTaxAdvisorUseCase` apenas envia números prontos ao LLM para narrativa. |
+| II. Spec-Driven Development (NON-NEGOTIABLE) | ✅ RESOLVIDO | `LIMITE_PGBL_PERCENTUAL = 0.12` e `TETO_DESCONTO_SIMPLIFICADO = 16754.34` adicionados a `tax_rules_schema.json`; carregados no import, sem hardcode. `test_spec.py` valida. |
 | III. Privacy-First / Zero-Knowledge | ✅ PASS | Escritas confinadas a `inspectir/data/`; export `.xlsx` gerado localmente. `.gitignore` deve cobrir `inspectir/data/`. |
 | IV. Test-First (TDD) | ✅ PASS | Novos comportamentos (PGBL, recomendação de modelo, export) exigem teste antes da implementação em `test_unit`/`test_integration`. |
 | V. Harness-First | ✅ PASS | `simulado=True` já presente em `extractor.py`/`ExtrairNotasUseCase`; export e PGBL são determinísticos e testáveis offline. |
 
-**Resultado do gate**: PASS condicionado às duas ações ⚠️ acima (mover aritmética PGBL para o domínio; adicionar constantes ao schema). Ambas reforçam princípios NON-NEGOTIABLE — não são violações justificadas, são correções planejadas. `Complexity Tracking` permanece vazio.
+**Resultado do gate**: ✅ PASS. As duas ações planejadas foram implementadas (aritmética PGBL no domínio; constantes no schema). Nenhuma violação remanescente. `Complexity Tracking` permanece vazio.
 
 ## Project Structure
 

@@ -23,9 +23,10 @@ Declarar o Imposto de Renda de forma otimizada no Brasil exige planejamento fisc
 O **InspectIR** automatiza toda a cadeia de inteligência fiscal em quatro etapas:
 
 1. **Extração automatizada** de NF-e, NFC-e e NFS-e via Playwright (com suporte a login manual e persistência de sessão).
-2. **Auditoria por IA** com o modelo Gemini, classificando despesas em Saúde, Educação ou Não Dedutível com justificativa legal.
-3. **Motor de cálculo do IRPF** com aplicação dos limites legais (ex.: teto de educação de R$ 3.561,50/pessoa) e estimativa de restituição.
-4. **Deep Tax Advisor** — consultoria estratégica personalizando a análise com base em renda bruta, PGBL e número de dependentes.
+2. **Auditoria por IA** com o modelo Gemini, classificando despesas em Saúde, Educação ou Não Dedutível com justificativa legal e identificação do beneficiário por **CPF**.
+3. **Motor de cálculo do IRPF** (determinístico) com aplicação dos limites legais (teto de educação de R$ 3.561,50 **por CPF**), estimativa de restituição, limite PGBL (12% da RBT) e recomendação Simplificado vs. Completo.
+4. **Deep Tax Advisor** — os números são calculados pelo domínio; o Gemini apenas redige o parecer estratégico (renda bruta, PGBL, dependentes).
+5. **Exportação Excel** da auditoria, pronta para conferência no programa da Receita Federal.
 
 ---
 
@@ -52,12 +53,13 @@ inspectIR/
 ├── specs/
 │   └── tax_rules_schema.json   # SSOT — constantes fiscais (tetos, alíquotas)
 ├── domain/
-│   └── models.py               # Entidades: NotaFiscal, NotaAuditada, CNPJ
-│                               # Serviço: MotorCalculoIR
+│   └── models.py               # Entidades: NotaFiscal, NotaAuditada
+│                               # Value objects: CNPJ, CPF, Beneficiario (identidade = CPF)
+│                               # Serviço: MotorCalculoIR (deduções, PGBL, modelo)
 ├── application/
-│   └── use_cases.py            # Casos de uso: Extrair, Auditar, DeepTaxAdvisor
+│   └── use_cases.py            # Casos de uso: Extrair, Auditar, DeepTaxAdvisor, ExportarPlanilha
 ├── infrastructure/
-│   └── services.py             # Adaptadores: Gemini (LLM) + I/O local
+│   └── services.py             # Adaptadores: Gemini (LLM) + I/O local + ExportadorExcel (openpyxl)
 ├── tests/                      # Suíte TDD/SDD completa
 ├── extractor.py                # Playwright scraper (portal SEFIN)
 ├── app.py                      # Interface Streamlit (camada de apresentação)
@@ -78,7 +80,7 @@ app.py (UI Streamlit)
                                                     └─► auditoria_final.json
 ```
 
-> **Princípio-chave:** As constantes fiscais (`TETO_EDUCACAO_INDIVIDUAL`, `ALIQUEOTA_PADRAO`) residem exclusivamente em `specs/tax_rules_schema.json`. Nunca são hardcoded — qualquer atualização legal basta editar o spec, e todas as camadas refletem automaticamente.
+> **Princípio-chave:** As constantes fiscais (`TETO_EDUCACAO_INDIVIDUAL`, `ALIQUEOTA_PADRAO`, `LIMITE_PGBL_PERCENTUAL`, `TETO_DESCONTO_SIMPLIFICADO`) residem exclusivamente em `specs/tax_rules_schema.json`. Nunca são hardcoded — qualquer atualização legal basta editar o spec, e todas as camadas refletem automaticamente. O cálculo de PGBL e a recomendação de modelo são **determinísticos** (feitos no domínio, não pela IA).
 
 ---
 
@@ -151,8 +153,8 @@ python -m pytest tests/test_live_gemini.py -v
 
 | Arquivo | Escopo |
 |---|---|
-| `test_unit.py` | Regras de domínio puro (sem I/O) |
-| `test_integration.py` | Pipeline completo com MagicMock para o LLM |
+| `test_unit.py` | Regras de domínio puro: CNPJ/CPF, teto de educação por CPF, PGBL, recomendação de modelo |
+| `test_integration.py` | Pipeline completo com MagicMock para o LLM + exportação Excel |
 | `test_spec.py` | Conformidade com `tax_rules_schema.json` |
 | `test_e2e.py` | End-to-end completo |
 | `test_live_gemini.py` | Conectividade real com a API Gemini |

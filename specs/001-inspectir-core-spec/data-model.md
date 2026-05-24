@@ -13,8 +13,14 @@ Fonte das constantes: `specs/tax_rules_schema.json` (carregadas no import de `do
 ### Beneficiario (frozen)
 - `nome: str`
 - `eh_titular: bool = False`
-- **Nota**: identificação ideal por CPF (spec). Hoje agrupado por `nome`; risco de colisão de
-  homônimos é Edge Case conhecido — chave por CPF é evolução futura, fora deste escopo.
+- `cpf: str = ""` — normalizado para dígitos no `__post_init__`.
+- **Identidade**: `chave_identidade` = `cpf` quando presente, senão `nome` (fallback). O agrupamento
+  do teto de educação usa a chave de identidade — homônimos com CPFs distintos contam separadamente
+  (FR-011). ✅ Implementado.
+
+### CPF (frozen)
+- `valor: str` — normalizado para 11 dígitos numéricos no `__post_init__`; `ValueError` se inválido.
+- **Derivado**: `formatado` → `XXX.XXX.XXX-XX`.
 
 ### CategoriaFiscal (enum)
 - `SAUDE = "Saude"`, `EDUCACAO = "Educacao"`, `NAO_DEDUTIVEL = "Nao Dedutivel"`.
@@ -45,10 +51,10 @@ Fonte das constantes: `specs/tax_rules_schema.json` (carregadas no import de `do
 ### Constantes (de `tax_rules_schema.json`)
 | Constante | Valor atual | Status |
 |-----------|-------------|--------|
-| `TETO_EDUCACAO_INDIVIDUAL` | 3561.50 | existente |
-| `ALIQUEOTA_PADRAO_RESTITUICAO` | 0.275 | existente |
-| `LIMITE_PGBL_PERCENTUAL` | 0.12 | **a adicionar (US2)** |
-| `TETO_DESCONTO_SIMPLIFICADO` | 16754.34 | **a adicionar (US2)** |
+| `TETO_EDUCACAO_INDIVIDUAL` | 3561.50 | ✅ |
+| `ALIQUEOTA_PADRAO_RESTITUICAO` | 0.275 | ✅ |
+| `LIMITE_PGBL_PERCENTUAL` | 0.12 | ✅ adicionado (US2) |
+| `TETO_DESCONTO_SIMPLIFICADO` | 16754.34 | ✅ adicionado (US2) |
 
 ### `processar_calculos(notas_auditadas) -> dict` (existente)
 - Soma saúde sem teto.
@@ -74,7 +80,7 @@ Fonte das constantes: `specs/tax_rules_schema.json` (carregadas no import de `do
 
 ### `notas_brutas.json` — lista de objetos `NotaFiscal` serializados (data `dd/mm/aaaa`).
 ### `auditoria_final.json` — `{ "auditoria_fiscal": [ { id, emitente, cnpj, valor, dedutivel,
-categoria, beneficiario_provavel, justificativa_legal } ] }`.
+categoria, beneficiario_provavel, beneficiario_cpf, justificativa_legal } ] }`.
 ### `auth_state.json` — estado de sessão Playwright (NÃO versionado).
 ### `*.xlsx` — saída de exportação (US4), gerada sob demanda.
 

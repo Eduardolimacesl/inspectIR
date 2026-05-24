@@ -11,7 +11,8 @@ analisar_em_lote(notas: List[NotaFiscal]) -> List[NotaAuditada]
 ```json
 {"auditoria_fiscal": [
   {"id": "NF-2025-001", "dedutivel": true, "categoria": "Saude",
-   "beneficiario_provavel": "Titular", "justificativa_legal": "..."}
+   "beneficiario_provavel": "Titular", "beneficiario_cpf": "",
+   "justificativa_legal": "..."}
 ]}
 ```
 - **Resiliência**: 4 tentativas, backoff exponencial base 2s (2→4→8s). Após 4 falhas →
@@ -20,7 +21,7 @@ analisar_em_lote(notas: List[NotaFiscal]) -> List[NotaAuditada]
   ignorados; `eh_titular = (beneficiario_provavel.lower() == "titular")`.
 - **Pré-condição**: `api_key` configurada (env `GEMINI_API_KEY` ou sidebar), senão `ValueError`.
 
-## DeepTaxAdvisorUseCase.executar (existente — A REFATORAR para US2)
+## DeepTaxAdvisorUseCase.executar (US2) ✅ Refatorado
 ```
 executar(api_key, renda_anual_bruta, previdencia_pgbl, dependentes_qtd, notas_auditadas) -> str
 ```

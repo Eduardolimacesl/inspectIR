@@ -13,6 +13,8 @@ description: "Task list for InspectIR core spec implementation"
 
 **Organization**: Tarefas agrupadas por user story para implementação e teste independentes.
 
+**Status**: ✅ Implementado (US1–US4). 18 testes passando (`--ignore=tests/test_live_gemini.py`). Pendente apenas T002 (instalação do Chromium, necessária só para extração real — modo simulado dispensa).
+
 ## Format: `[ID] [P?] [Story] Description`
 
 - **[P]**: pode rodar em paralelo (arquivos diferentes, sem dependências pendentes)
@@ -28,9 +30,9 @@ Single project, layout DDD/Hexagonal na raiz: `domain/`, `application/`, `infras
 
 **Purpose**: Preparar ambiente e baseline.
 
-- [ ] T001 Verificar Python 3.12 (não 3.14) e instalar dependências: `python3 -m pip install -r requirements.txt --break-system-packages`
-- [ ] T002 [P] Instalar navegador Playwright (uma vez, para extração real US3): `python3 -m playwright install chromium`
-- [ ] T003 [P] Estabelecer baseline verde executando `python3 -m pytest tests/ -v --ignore=tests/test_live_gemini.py`
+- [x] T001 Verificar Python 3.12 (não 3.14) e instalar dependências: `python3 -m pip install -r requirements.txt --break-system-packages`
+- [ ] T002 [P] Instalar navegador Playwright (uma vez, para extração real US3): `python3 -m playwright install chromium` — pendente (apenas necessário para extração real; modo simulado não requer)
+- [x] T003 [P] Estabelecer baseline verde executando `python3 -m pytest tests/ -v --ignore=tests/test_live_gemini.py`
 
 ---
 
@@ -40,9 +42,9 @@ Single project, layout DDD/Hexagonal na raiz: `domain/`, `application/`, `infras
 
 **⚠️ CRITICAL**: Nenhuma user story começa antes desta fase.
 
-- [ ] T004 Confirmar loader SDD `carregar_especificacao_sdd()` lendo `specs/tax_rules_schema.json` no import em domain/models.py
-- [ ] T005 [P] Confirmar value objects/entidades puros (sem imports de infra) em domain/models.py: `CNPJ`, `Beneficiario`, `CategoriaFiscal`, `NotaFiscal`, `NotaAuditada`
-- [ ] T006 [P] Confirmar adaptador de persistência local `EscritorLeitorNotasLocal` (salvar/carregar brutas e auditoria em `inspectir/data/`) em infrastructure/services.py
+- [x] T004 Confirmar loader SDD `carregar_especificacao_sdd()` lendo `specs/tax_rules_schema.json` no import em domain/models.py
+- [x] T005 [P] Confirmar value objects/entidades puros (sem imports de infra) em domain/models.py: `CNPJ`, `Beneficiario`, `CategoriaFiscal`, `NotaFiscal`, `NotaAuditada`
+- [x] T006 [P] Confirmar adaptador de persistência local `EscritorLeitorNotasLocal` (salvar/carregar brutas e auditoria em `inspectir/data/`) em infrastructure/services.py
 
 **Checkpoint**: Fundação pronta — user stories podem iniciar.
 
@@ -56,17 +58,17 @@ Single project, layout DDD/Hexagonal na raiz: `domain/`, `application/`, `infras
 
 ### Tests for User Story 1 ⚠️ (escrever primeiro, devem falhar)
 
-- [ ] T007 [P] [US1] Teste unitário de `CNPJ` (14 dígitos, `formatado`, falha em inválido) em tests/test_unit.py
-- [ ] T008 [P] [US1] Teste unitário de `MotorCalculoIR.processar_calculos` (saúde sem teto; educação com teto por beneficiário; nota não dedutível ignorada) em tests/test_unit.py
-- [ ] T009 [P] [US1] Teste de integração do pipeline de auditoria com `MagicMock` no adaptador LLM em tests/test_integration.py
+- [x] T007 [P] [US1] Teste unitário de `CNPJ` (14 dígitos, `formatado`, falha em inválido) em tests/test_unit.py
+- [x] T008 [P] [US1] Teste unitário de `MotorCalculoIR.processar_calculos` (saúde sem teto; educação com teto por beneficiário; nota não dedutível ignorada) em tests/test_unit.py
+- [x] T009 [P] [US1] Teste de integração do pipeline de auditoria com `MagicMock` no adaptador LLM em tests/test_integration.py
 
 ### Implementation for User Story 1
 
-- [ ] T010 [US1] Implementar/confirmar `MotorCalculoIR.processar_calculos` em domain/models.py
-- [ ] T011 [US1] Implementar/confirmar `AdaptadorGeminiFiscal.analisar_em_lote` (saída JSON, temperatura 0,1, backoff 4× base 2s) em infrastructure/services.py
-- [ ] T012 [US1] Implementar/confirmar `AuditarNotasUseCase.executar` (carrega brutas → audita → salva `auditoria_final.json`) em application/use_cases.py
-- [ ] T013 [US1] Exibir métricas do painel (Saúde, Educação, Restituição) na aba Painel em app.py
-- [ ] T014 [US1] Tratar caminhos de erro: CNPJ inválido (falha rápida) e falha do Gemini após 4 tentativas (erro amigável na UI) em app.py / infrastructure/services.py
+- [x] T010 [US1] Implementar/confirmar `MotorCalculoIR.processar_calculos` em domain/models.py
+- [x] T011 [US1] Implementar/confirmar `AdaptadorGeminiFiscal.analisar_em_lote` (saída JSON, temperatura 0,1, backoff 4× base 2s) em infrastructure/services.py
+- [x] T012 [US1] Implementar/confirmar `AuditarNotasUseCase.executar` (carrega brutas → audita → salva `auditoria_final.json`) em application/use_cases.py
+- [x] T013 [US1] Exibir métricas do painel (Saúde, Educação, Restituição) na aba Painel em app.py
+- [x] T014 [US1] Tratar caminhos de erro: CNPJ inválido (falha rápida) e falha do Gemini após 4 tentativas (erro amigável na UI) em app.py / infrastructure/services.py
 
 **Checkpoint**: US1 totalmente funcional e testável de forma independente (MVP).
 
@@ -80,18 +82,18 @@ Single project, layout DDD/Hexagonal na raiz: `domain/`, `application/`, `infras
 
 ### Tests for User Story 2 ⚠️ (escrever primeiro, devem falhar)
 
-- [ ] T015 [P] [US2] Atualizar tests/test_spec.py para exigir `LIMITE_PGBL_PERCENTUAL` e `TETO_DESCONTO_SIMPLIFICADO` no schema
-- [ ] T016 [P] [US2] Teste unitário de `MotorCalculoIR.analisar_pgbl` (RBT 100k/PGBL 4k → aporte 8k, economia 2200; PGBL ≥ 12% → limite atingido) em tests/test_unit.py
-- [ ] T017 [P] [US2] Teste unitário de `MotorCalculoIR.recomendar_modelo` (deduções > desconto → Completo; deduções < desconto → Simplificado) em tests/test_unit.py
+- [x] T015 [P] [US2] Atualizar tests/test_spec.py para exigir `LIMITE_PGBL_PERCENTUAL` e `TETO_DESCONTO_SIMPLIFICADO` no schema
+- [x] T016 [P] [US2] Teste unitário de `MotorCalculoIR.analisar_pgbl` (RBT 100k/PGBL 4k → aporte 8k, economia 2200; PGBL ≥ 12% → limite atingido) em tests/test_unit.py
+- [x] T017 [P] [US2] Teste unitário de `MotorCalculoIR.recomendar_modelo` (deduções > desconto → Completo; deduções < desconto → Simplificado) em tests/test_unit.py
 
 ### Implementation for User Story 2
 
-- [ ] T018 [US2] Adicionar `LIMITE_PGBL_PERCENTUAL = 0.12` e `TETO_DESCONTO_SIMPLIFICADO = 16754.34` em specs/tax_rules_schema.json
-- [ ] T019 [US2] Carregar as novas constantes em `MotorCalculoIR` (do schema, sem hardcode) em domain/models.py
-- [ ] T020 [P] [US2] Implementar `MotorCalculoIR.analisar_pgbl(rbt, pgbl_atual)` em domain/models.py
-- [ ] T021 [P] [US2] Implementar `MotorCalculoIR.recomendar_modelo(rbt, total_deducoes)` em domain/models.py
-- [ ] T022 [US2] Refatorar `DeepTaxAdvisorUseCase` para usar os cálculos do domínio e passar números prontos ao LLM (apenas narrativa Markdown, temperatura 0,15) em application/use_cases.py
-- [ ] T023 [US2] Atualizar aba Consultoria IA para exibir PGBL/modelo + parecer em app.py
+- [x] T018 [US2] Adicionar `LIMITE_PGBL_PERCENTUAL = 0.12` e `TETO_DESCONTO_SIMPLIFICADO = 16754.34` em specs/tax_rules_schema.json
+- [x] T019 [US2] Carregar as novas constantes em `MotorCalculoIR` (do schema, sem hardcode) em domain/models.py
+- [x] T020 [P] [US2] Implementar `MotorCalculoIR.analisar_pgbl(rbt, pgbl_atual)` em domain/models.py
+- [x] T021 [P] [US2] Implementar `MotorCalculoIR.recomendar_modelo(rbt, total_deducoes)` em domain/models.py
+- [x] T022 [US2] Refatorar `DeepTaxAdvisorUseCase` para usar os cálculos do domínio e passar números prontos ao LLM (apenas narrativa Markdown, temperatura 0,15) em application/use_cases.py
+- [x] T023 [US2] Atualizar aba Consultoria IA para exibir PGBL/modelo + parecer em app.py
 
 **Checkpoint**: US1 e US2 funcionam de forma independente.
 
@@ -105,13 +107,13 @@ Single project, layout DDD/Hexagonal na raiz: `domain/`, `application/`, `infras
 
 ### Tests for User Story 3 ⚠️ (escrever primeiro, devem falhar)
 
-- [ ] T024 [P] [US3] Teste de integração: caminho `simulado=True` retorna fixtures sem rede e pipeline < 5s em tests/test_integration.py
+- [x] T024 [P] [US3] Teste de integração: caminho `simulado=True` retorna fixtures sem rede e pipeline < 5s em tests/test_integration.py
 
 ### Implementation for User Story 3
 
-- [ ] T025 [US3] Confirmar fixtures de `capturar_notas_portal_sefin(simulado=True)` e `ExtrairNotasUseCase` modo simulado em extractor.py / application/use_cases.py
-- [ ] T026 [US3] Confirmar persistência/reuso de `auth_state.json` e espera de `**/dashboard**` (timeout 120s) na primeira execução em extractor.py
-- [ ] T027 [US3] Tratar sessão expirada: invalidar `auth_state.json` e solicitar novo login manual em extractor.py
+- [x] T025 [US3] Confirmar fixtures de `capturar_notas_portal_sefin(simulado=True)` e `ExtrairNotasUseCase` modo simulado em extractor.py / application/use_cases.py
+- [x] T026 [US3] Confirmar persistência/reuso de `auth_state.json` e espera de `**/dashboard**` (timeout 120s) na primeira execução em extractor.py
+- [x] T027 [US3] Tratar sessão expirada: invalidar `auth_state.json` e solicitar novo login manual em extractor.py
 
 **Checkpoint**: US1, US2 e US3 funcionam de forma independente.
 
@@ -125,13 +127,13 @@ Single project, layout DDD/Hexagonal na raiz: `domain/`, `application/`, `infras
 
 ### Tests for User Story 4 ⚠️ (escrever primeiro, devem falhar)
 
-- [ ] T028 [P] [US4] Teste de integração: exportação gera `.xlsx` com todas as colunas exigidas e CNPJ no formato `XX.XXX.XXX/XXXX-XX` em tests/test_integration.py
+- [x] T028 [P] [US4] Teste de integração: exportação gera `.xlsx` com todas as colunas exigidas e CNPJ no formato `XX.XXX.XXX/XXXX-XX` em tests/test_integration.py
 
 ### Implementation for User Story 4
 
-- [ ] T029 [US4] Implementar `ExportadorExcelLocal.exportar` (openpyxl: cabeçalho + 1 linha/nota) em infrastructure/services.py
-- [ ] T030 [US4] Implementar `ExportarPlanilhaUseCase.executar` (lê `auditoria_final.json`, reconstrói domínio, delega ao exportador) em application/use_cases.py
-- [ ] T031 [US4] Adicionar botão de exportação/download na UI em app.py
+- [x] T029 [US4] Implementar `ExportadorExcelLocal.exportar` (openpyxl: cabeçalho + 1 linha/nota) em infrastructure/services.py
+- [x] T030 [US4] Implementar `ExportarPlanilhaUseCase.executar` (lê `auditoria_final.json`, reconstrói domínio, delega ao exportador) em application/use_cases.py
+- [x] T031 [US4] Adicionar botão de exportação/download na UI em app.py
 
 **Checkpoint**: Todas as user stories funcionam de forma independente.
 
@@ -141,10 +143,10 @@ Single project, layout DDD/Hexagonal na raiz: `domain/`, `application/`, `infras
 
 **Purpose**: Validação final e preocupações transversais.
 
-- [ ] T032 [P] Validar `quickstart.md`: pipeline simulado completo do início ao fim < 30s (SC-002)
-- [ ] T033 [P] Atualizar docs/ e CLAUDE.md se o comportamento mudou
-- [ ] T034 Garantir que `.gitignore` cobre `inspectir/data/` (auth_state, auditoria) — Privacy-First (SC-005)
-- [ ] T035 Execução final verde: `python3 -m pytest tests/ -v --ignore=tests/test_live_gemini.py`
+- [x] T032 [P] Validar `quickstart.md`: pipeline simulado completo do início ao fim < 30s (SC-002)
+- [x] T033 [P] Atualizar docs/ e CLAUDE.md se o comportamento mudou
+- [x] T034 Garantir que `.gitignore` cobre `inspectir/data/` (auth_state, auditoria) — Privacy-First (SC-005)
+- [x] T035 Execução final verde: `python3 -m pytest tests/ -v --ignore=tests/test_live_gemini.py`
 
 ---
 

@@ -4,7 +4,7 @@
 
 **Created**: 2026-05-24
 
-**Status**: Draft
+**Status**: Implementado (US1–US4)
 
 **Input**: Formalização do sistema InspectIR a partir dos documentos existentes em `docs/`
 

@@ -1,6 +1,6 @@
 # Contract — Exportação Excel (US4)
 
-## ExportadorExcelLocal.exportar (infrastructure — NOVO)
+## ExportadorExcelLocal.exportar (infrastructure) ✅ Implementado
 ```
 exportar(notas_auditadas: List[NotaAuditada], caminho_xlsx: str) -> str
 ```
@@ -19,7 +19,7 @@ exportar(notas_auditadas: List[NotaAuditada], caminho_xlsx: str) -> str
 - **Invariantes**: CNPJ sempre formatado (US4 cenário 2); arquivo abrível por Excel/LibreOffice
   sem erros (SC-007).
 
-## ExportarPlanilhaUseCase.executar (application — NOVO)
+## ExportarPlanilhaUseCase.executar (application) ✅ Implementado
 ```
 executar(caminho_auditoria: str, caminho_xlsx: str) -> str
 ```

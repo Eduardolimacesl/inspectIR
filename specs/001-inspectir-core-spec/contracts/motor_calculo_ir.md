@@ -22,7 +22,7 @@ processar_calculos(notas_auditadas: List[NotaAuditada]) -> Dict[str, Any]
 **Invariantes**: saúde sem teto; educação com `min(gasto, TETO_EDUCACAO_INDIVIDUAL)` por
 beneficiário; notas `dedutivel == false` ignoradas.
 
-## analisar_pgbl (NOVO — US2)
+## analisar_pgbl (US2) ✅ Implementado
 ```
 analisar_pgbl(rbt: float, pgbl_atual: float) -> Dict[str, Any]
 ```
@@ -33,7 +33,7 @@ analisar_pgbl(rbt: float, pgbl_atual: float) -> Dict[str, Any]
 **Invariantes**: `limite_pgbl = rbt * LIMITE_PGBL_PERCENTUAL`; `aporte_complementar` nunca negativo;
 `economia_estimada = aporte_complementar * ALIQUEOTA_PADRAO`.
 
-## recomendar_modelo (NOVO — US2)
+## recomendar_modelo (US2) ✅ Implementado
 ```
 recomendar_modelo(rbt: float, total_deducoes: float) -> Dict[str, Any]
 ```
