@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+*.egg-info/
+dist/
+build/
+
+# Virtual environment
+.venv/
+
+# InspectIR runtime data — contains PII (notas fiscais, CPF, valores)
+inspectir/data/
+data/
+
+# Playwright auth state — contains session cookies/tokens
+inspectir/data/auth_state.json
+
+# Environment
+.env
+.env.*
+
+# IDE
+.vscode/
+*.code-workspace
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
