@@ -4,24 +4,26 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
+> **Note:** Use `python3` (3.12). The `.venv` was created with Python 3.14 which lacks `_ctypes` — `pandas` and `streamlit` fail there.
+
 ```bash
 # Run app
-source .venv/bin/activate && streamlit run app.py
+python3 -m streamlit run app.py
 
-# Run all tests (must run from project root)
-source .venv/bin/activate && python -m pytest tests/
+# Run all tests (from project root)
+python3 -m pytest tests/ -v --ignore=tests/test_live_gemini.py
 
 # Run single test file
-source .venv/bin/activate && python -m pytest tests/test_unit.py -v
+python3 -m pytest tests/test_unit.py -v
 
 # Run single test
-source .venv/bin/activate && python -m pytest tests/test_unit.py::TestDomainRules::test_motor_calculo_ir_saude_sem_limites -v
+python3 -m pytest tests/test_unit.py::TestDomainRules::test_motor_calculo_ir_saude_sem_limites -v
 
 # Install deps
-source .venv/bin/activate && pip install -r requirements.txt
+python3 -m pip install -r requirements.txt --break-system-packages
 
 # Install Playwright browsers (one-time)
-source .venv/bin/activate && playwright install chromium
+python3 -m playwright install chromium
 ```
 
 Set `GEMINI_API_KEY` env var or enter it in the sidebar at runtime. Tests that hit live Gemini (in `test_live_gemini.py`) also require this key.
