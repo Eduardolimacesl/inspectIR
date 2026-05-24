@@ -31,6 +31,11 @@ async def capturar_notas_portal_sefin(cpf: str, data_ini: str, data_fim: str, si
             except Exception:
                 await browser.close()
                 return []
+        elif "login" in page.url or "auth" in page.url:
+            # Sessão expirada: portal redirecionou para login — invalida o estado salvo.
+            os.remove(ESTADO_SESSAO_JSON)
+            await browser.close()
+            return []
         await browser.close()
         return await capturar_notas_portal_sefin(cpf, data_ini, data_fim, simulado=True)
 

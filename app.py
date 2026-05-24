@@ -4,7 +4,7 @@ import pandas as pd
 import json
 import os
 import asyncio
-from application.use_cases import ExtrairNotasUseCase, AuditarNotasUseCase, DeepTaxAdvisorUseCase
+from application.use_cases import ExtrairNotasUseCase, AuditarNotasUseCase, DeepTaxAdvisorUseCase, ExportarPlanilhaUseCase
 from infrastructure.services import AdaptadorGeminiFiscal, EscritorLeitorNotasLocal
 from domain.models import MotorCalculoIR, CategoriaFiscal, NotaAuditada, Beneficiario
 
@@ -12,6 +12,7 @@ st.set_page_config(page_title="InspectIR — Inteligência Fiscal", page_icon="�
 
 CAMINHO_BRUTAS = "inspectir/data/notas_brutas.json"
 CAMINHO_AUDITADAS = "inspectir/data/auditoria_final.json"
+CAMINHO_XLSX = "inspectir/data/declaracao_irpf.xlsx"
 
 st.sidebar.title("Configurações InspectIR")
 api_key = st.sidebar.text_input("Chave API Gemini:", value=os.environ.get("GEMINI_API_KEY", ""), type="password")
@@ -57,6 +58,18 @@ with tab_dashboard:
 with tab_notas:
     if dados_disponiveis:
         st.dataframe(pd.DataFrame(dados_auditados), use_container_width=True, hide_index=True)
+        if st.button("📥 Gerar Planilha Excel para Declaração"):
+            try:
+                ExportarPlanilhaUseCase.executar(CAMINHO_BRUTAS, CAMINHO_AUDITADAS, CAMINHO_XLSX)
+                with open(CAMINHO_XLSX, "rb") as f:
+                    st.download_button(
+                        "⬇️ Baixar declaracao_irpf.xlsx",
+                        data=f.read(),
+                        file_name="declaracao_irpf.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    )
+            except ValueError as e:
+                st.warning(str(e))
 
 with tab_planejador_ia:
     if not dados_disponiveis:
@@ -65,6 +78,11 @@ with tab_planejador_ia:
         renda_anual = st.number_input("Renda Bruta Anual (R$):", value=120000.00)
         previdencia = st.number_input("Contribuição PGBL (R$):", value=5000.00)
         dependentes = st.number_input("Dependentes:", value=1, min_value=0)
+        perfil = DeepTaxAdvisorUseCase.calcular_perfil(renda_anual, previdencia, dados_auditados)
+        c1, c2, c3 = st.columns(3)
+        c1.metric("Limite PGBL (12%)", f"R$ {perfil['pgbl']['limite_pgbl']:,.2f}")
+        c2.metric("Aporte Sugerido", f"R$ {perfil['pgbl']['aporte_complementar']:,.2f}")
+        c3.metric("Modelo Indicado", perfil["modelo"]["modelo_recomendado"])
         if st.button("🧠 Gerar Parecer Fiscal Estratégico"):
             if not api_key: st.error("Chave API em falta.")
             else:

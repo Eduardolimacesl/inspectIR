@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import List, Dict, Any
 from google import genai
 from google.genai import types
+from openpyxl import Workbook
 from domain.models import NotaFiscal, CNPJ, NotaAuditada, Beneficiario, CategoriaFiscal
 
 class EscritorLeitorNotasLocal:
@@ -46,6 +47,7 @@ class EscritorLeitorNotasLocal:
                     "dedutivel": n.dedutivel,
                     "categoria": n.categoria.value,
                     "beneficiario_provavel": n.beneficiario.nome,
+                    "beneficiario_cpf": n.beneficiario.cpf,
                     "justificativa_legal": n.justificativa_legal
                 }
                 for n in notas_auditadas
@@ -65,7 +67,7 @@ class AdaptadorGeminiFiscal:
             {"id": n.id, "emitente": n.emitente, "cnpj": n.cnpj.valor, "valor": n.valor, "descricao": n.descricao, "data": n.data.strftime("%d/%m/%Y")}
             for n in notas
         ]
-        prompt = f"Você é um auditor fiscal eletrônico sênior da Receita Federal. Analise as notas fiscais e responda estritamente em formato JSON estruturado com a chave 'auditoria_fiscal':\\n{json.dumps(dados_entrada)}"
+        prompt = f"Você é um auditor fiscal eletrônico sênior da Receita Federal. Analise as notas fiscais e responda estritamente em formato JSON estruturado com a chave 'auditoria_fiscal'. Para cada nota inclua os campos: id, dedutivel (bool), categoria ('Saude'|'Educacao'|'Nao Dedutivel'), beneficiario_provavel (nome, ou 'Titular'), beneficiario_cpf (somente dígitos do CPF se identificável na descrição, senão string vazia) e justificativa_legal:\\n{json.dumps(dados_entrada)}"
         tentativas = 4
         delay = 2
         for t in range(tentativas):
@@ -91,7 +93,11 @@ class AdaptadorGeminiFiscal:
                             nota=nota_origem,
                             dedutivel=item["dedutivel"],
                             categoria=CategoriaFiscal(item["categoria"]),
-                            beneficiario=Beneficiario(item["beneficiario_provavel"], item["beneficiario_provavel"].lower() == "titular"),
+                            beneficiario=Beneficiario(
+                                item["beneficiario_provavel"],
+                                item["beneficiario_provavel"].lower() == "titular",
+                                item.get("beneficiario_cpf", "")
+                            ),
                             justificativa_legal=item["justificativa_legal"]
                         )
                     )
@@ -102,3 +108,24 @@ class AdaptadorGeminiFiscal:
                 time.sleep(delay)
                 delay *= 2
         return []
+
+class ExportadorExcelLocal:
+    COLUNAS = ["CNPJ", "Prestador", "Beneficiário", "Valor", "Categoria", "Data"]
+    @classmethod
+    def exportar(cls, notas_auditadas: List[NotaAuditada], caminho: str) -> str:
+        os.makedirs(os.path.dirname(caminho), exist_ok=True)
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Auditoria IRPF"
+        ws.append(cls.COLUNAS)
+        for n in notas_auditadas:
+            ws.append([
+                n.nota.cnpj.formatado,
+                n.nota.emitente,
+                n.beneficiario.nome,
+                round(n.nota.valor, 2),
+                n.categoria.value,
+                n.nota.data.strftime("%d/%m/%Y")
+            ])
+        wb.save(caminho)
+        return caminho

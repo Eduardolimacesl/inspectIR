@@ -2,15 +2,21 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "InspectIR-TaxRulesSpecification",
   "description": "Especificação formal de dados e regras fiscais aplicadas no ecossistema InspectIR para o IRPF.",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "tax_constants": {
     "TETO_EDUCACAO_INDIVIDUAL": 3561.50,
-    "ALIQUEOTA_PADRAO_RESTITUICAO": 0.275
+    "ALIQUEOTA_PADRAO_RESTITUICAO": 0.275,
+    "LIMITE_PGBL_PERCENTUAL": 0.12,
+    "TETO_DESCONTO_SIMPLIFICADO": 16754.34
   },
   "definitions": {
     "cnpj_pattern": {
       "type": "string",
       "pattern": "^\\d{14}$"
+    },
+    "cpf_pattern": {
+      "type": "string",
+      "pattern": "^\\d{11}$"
     },
     "NotaFiscal": {
       "type": "object",
@@ -34,6 +40,7 @@
         "dedutivel": { "type": "boolean" },
         "categoria": { "type": "string", "enum": ["Saude", "Educacao", "Nao Dedutivel"] },
         "beneficiario_provavel": { "type": "string" },
+        "beneficiario_cpf": { "type": "string" },
         "justificativa_legal": { "type": "string" }
       },
       "required": ["id", "emitente", "cnpj", "valor", "dedutivel", "categoria", "beneficiario_provavel", "justificativa_legal"]

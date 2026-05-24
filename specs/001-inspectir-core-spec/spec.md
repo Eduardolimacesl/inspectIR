@@ -29,7 +29,7 @@ isoladamente sem portal ou declaração real.
 **Acceptance Scenarios**:
 
 1. **Given** notas de saúde (consultas, hospitais, clínicas), **When** o motor auditoria processa, **Then** todas são classificadas como `SAUDE` sem aplicação de teto limitador.
-2. **Given** três notas de educação para dependentes distintos (cada uma > R$3.561,50), **When** o motor processa, **Then** cada beneficiário tem teto aplicado individualmente (cap R$3.561,50/pessoa).
+2. **Given** três notas de educação para dependentes distintos identificados por **CPF** (cada uma > R$3.561,50), **When** o motor processa, **Then** cada beneficiário (chave = CPF) tem teto aplicado individualmente (cap R$3.561,50/pessoa).
 3. **Given** nota com CNPJ inválido (< 14 dígitos), **When** submetida ao motor, **Then** sistema rejeita com erro descritivo antes de processar.
 4. **Given** falha temporária de API Gemini, **When** a requisição falha, **Then** sistema retenta até 4 vezes com backoff exponencial; após 4 falhas levanta erro amigável na interface.
 
@@ -102,8 +102,8 @@ sem dependência de portal ou IA.
 
 - O que acontece quando o portal SEFIN altera sua estrutura HTML e os seletores Playwright param de funcionar?
 - Como o sistema trata notas com valor R$0,00 (cortesias, ajustes)?
-- O que ocorre quando dois beneficiários têm o mesmo nome mas CPFs distintos?
-- Como o sistema reage se `tax_rules_schema.json` estiver malformado (JSON inválido)?
+- Dois beneficiários com o mesmo nome mas CPFs distintos são tratados como pessoas separadas (chave de agrupamento = CPF — FR-011).
+- `tax_rules_schema.json` malformado (JSON inválido) recai em constantes padrão seguras sem quebrar a aplicação (FR-012).
 - O que acontece se o usuário cancelar o login manual antes do timeout de 120s?
 
 ---
@@ -122,12 +122,15 @@ sem dependência de portal ou IA.
 - **FR-008**: Sistema MUST persistir notas brutas e auditoria final exclusivamente em disco local (`inspectir/data/`); nenhum dado financeiro enviado a serviços externos além da chamada transiente ao LLM.
 - **FR-009**: Toda constante fiscal (teto educação, alíquota base, limite simplificado) MUST ser carregada de `specs/tax_rules_schema.json` em runtime — proibido hardcode em código Python.
 - **FR-010**: Sistema MUST operar em modo simulado sem acesso de rede, retornando dados fixture para desenvolvimento e testes.
+- **FR-011**: Sistema MUST identificar o beneficiário de cada nota por **CPF** (value object de 11 dígitos). O teto de educação MUST ser agrupado e aplicado pela chave CPF; quando o CPF não estiver disponível na nota, o nome é usado como chave de fallback provisória. Dois beneficiários com o mesmo nome e CPFs distintos MUST ser tratados como pessoas separadas.
+- **FR-012**: Carregamento de `specs/tax_rules_schema.json` MUST ser resiliente a arquivo ausente ou JSON malformado, recorrendo a constantes padrão seguras sem interromper a aplicação.
 
 ### Key Entities
 
 - **NotaFiscal**: Fatura bruta capturada; campos: CNPJ prestador, beneficiário, valor, data, tipo serviço (descrição bruta).
 - **NotaAuditada**: NF classificada pela IA; campos adicionais: categoria fiscal (`SAUDE`|`EDUCACAO`), valor dedutível calculado, justificativa legal textual.
-- **Beneficiario**: Value object identificado por CPF; agrupa notas para aplicação individual do teto de educação.
+- **Beneficiario**: Value object identificado por **CPF** (11 dígitos); agrupa notas pela chave CPF para aplicação individual do teto de educação. Campo `nome` é descritivo; `cpf` é a identidade. Fallback para `nome` apenas quando o CPF não está disponível.
+- **CPF**: Value object com validação de 11 dígitos numéricos; falha rápida se inválido; expõe forma formatada `XXX.XXX.XXX-XX`.
 - **CNPJ**: Value object com validação de 14 dígitos numéricos; falha rápida se inválido.
 - **MotorCalculoIR**: Serviço de domínio puro; recebe lista de `NotaAuditada` + parâmetros PGBL, produz relatório de deduções e recomendação de modelo.
 
@@ -137,7 +140,7 @@ sem dependência de portal ou IA.
 
 ### Measurable Outcomes
 
-- **SC-001**: 100% das despesas de saúde classificadas corretamente sem teto; 100% das despesas de educação com teto por beneficiário aplicado — verificável via `test_unit.py` e `test_spec.py`.
+- **SC-001**: 100% das despesas de saúde classificadas corretamente sem teto; 100% das despesas de educação com teto aplicado por beneficiário **identificado por CPF** (homônimos com CPFs distintos contam separadamente) — verificável via `test_unit.py` e `test_spec.py`.
 - **SC-002**: Pipeline completo (extração simulada → auditoria → relatório) executa do início ao fim em < 30 segundos em modo simulado.
 - **SC-003**: Recomendação de modelo (Simplificado vs. Completo) matematicamente correta para 100% dos cenários cobertos pelos testes de domínio.
 - **SC-004**: Cálculo PGBL correto (limite, aporte complementar, economia) para qualquer combinação de RBT e contribuição atual — validado por testes unitários.

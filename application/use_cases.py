@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 import json
+import os
 from typing import List, Dict, Any
-from domain.models import NotaAuditada, MotorCalculoIR
-from infrastructure.services import EscritorLeitorNotasLocal, AdaptadorGeminiFiscal
+from domain.models import NotaAuditada, MotorCalculoIR, CategoriaFiscal, Beneficiario
+from infrastructure.services import EscritorLeitorNotasLocal, AdaptadorGeminiFiscal, ExportadorExcelLocal
 from google import genai
 from google.genai import types
 
@@ -18,7 +19,7 @@ class ExtrairNotasUseCase:
                 {"id": "NF-2025-005", "emitente": "ACADEMIA FIT E SAÚDE LTDA", "cnpj": "22333444000155", "valor": 1200.00, "descricao": "PLANO ANUAL DE GINÁSTICA DO TITULAR", "data": "01/01/2025"}
             ]
             EscritorLeitorNotasLocal.salvar_brutas(massa_dados, caminho_saida)
-            return mansa_dados if 'mansa_dados' in locals() else massa_dados
+            return massa_dados
         return []
 
 class AuditarNotasUseCase:
@@ -33,22 +34,68 @@ class AuditarNotasUseCase:
 
 class DeepTaxAdvisorUseCase:
     @staticmethod
+    def calcular_perfil(renda_anual_bruta: float, previdencia_pgbl: float, notas_auditadas: List[Dict[str, Any]]) -> Dict[str, Any]:
+        total_saude = sum(n["valor"] for n in notas_auditadas if n["dedutivel"] and n["categoria"] == "Saude")
+        educacao_por_pessoa: Dict[str, float] = {}
+        for n in notas_auditadas:
+            if n["dedutivel"] and n["categoria"] == "Educacao":
+                chave = n.get("beneficiario_cpf") or n.get("beneficiario_provavel", "")
+                educacao_por_pessoa[chave] = educacao_por_pessoa.get(chave, 0.0) + n["valor"]
+        total_educacao = sum(min(v, MotorCalculoIR.TETO_EDUCACAO_INDIVIDUAL) for v in educacao_por_pessoa.values())
+        deducoes_notas = total_saude + total_educacao
+        pgbl = MotorCalculoIR.analisar_pgbl(renda_anual_bruta, previdencia_pgbl)
+        modelo = MotorCalculoIR.recomendar_modelo(renda_anual_bruta, deducoes_notas + previdencia_pgbl)
+        return {
+            "total_saude": total_saude,
+            "total_educacao_dedutivel": total_educacao,
+            "deducoes_notas": deducoes_notas,
+            "pgbl": pgbl,
+            "modelo": modelo
+        }
+
+    @staticmethod
     def executar(api_key: str, renda_anual_bruta: float, previdencia_pgbl: float, dependentes_qtd: int, notas_auditadas: List[Dict[str, Any]]) -> str:
         if not api_key: raise ValueError("Chave de API do Gemini é obrigatória.")
+        perfil = DeepTaxAdvisorUseCase.calcular_perfil(renda_anual_bruta, previdencia_pgbl, notas_auditadas)
         client = genai.Client(api_key=api_key)
-        saude_encontrada = [n for n in notas_auditadas if n["dedutivel"] and n["categoria"] == "Saude"]
-        educacao_encontrada = [n for n in notas_auditadas if n["dedutivel"] and n["categoria"] == "Educacao"]
-        rejeitadas = [n for n in notas_auditadas if not n["dedutivel"]]
-        resumo_financeiro_notas = {
-            "total_saude": sum(n["valor"] for n in saude_encontrada),
-            "total_educacao": sum(n["valor"] for n in educacao_encontrada),
-            "quantidade_notas_rejeitadas": len(rejeitadas),
-            "itens_rejeitados_exemplo": [n["descricao"][:60] for n in rejeitadas[:3]]
-        }
-        prompt = f"Você é um CFP no Brasil. Analise o perfil fiscal e forneça um relatório em Markdown: Renda R$ {renda_anual_bruta}, PGBL R$ {previdencia_pgbl}, Dependentes: {dependentes_qtd}, Notas: {json.dumps(resumo_financeiro_notas)}"
+        prompt = (
+            "Você é um planejador financeiro (CFP) no Brasil. Os números a seguir já foram "
+            "CALCULADOS de forma determinística pelo motor fiscal — NÃO os recalcule, apenas "
+            "interprete e gere um parecer estratégico de IRPF em Markdown, recomendando o aporte "
+            "PGBL complementar e o modelo de declaração indicado, com justificativa para o "
+            f"contribuinte. Renda bruta tributável anual: R$ {renda_anual_bruta:.2f}. "
+            f"Dependentes: {dependentes_qtd}. Dados calculados: {json.dumps(perfil, ensure_ascii=False)}"
+        )
         response = client.models.generate_content(
             model='gemini-2.5-flash-preview-09-2025',
             contents=prompt,
             config=types.GenerateContentConfig(temperature=0.15)
         )
         return response.text
+
+class ExportarPlanilhaUseCase:
+    @staticmethod
+    def executar(caminho_brutas: str, caminho_auditoria: str, caminho_xlsx: str) -> str:
+        if not os.path.exists(caminho_auditoria):
+            raise ValueError("Nenhuma auditoria encontrada para exportar.")
+        notas_brutas = EscritorLeitorNotasLocal.carregar_brutas(caminho_brutas)
+        with open(caminho_auditoria, "r", encoding="utf-8") as f:
+            dados = json.load(f).get("auditoria_fiscal", [])
+        if not dados:
+            raise ValueError("Auditoria vazia — nada a exportar.")
+        mapa = {n.id: n for n in notas_brutas}
+        auditadas: List[NotaAuditada] = []
+        for item in dados:
+            origem = mapa.get(item["id"])
+            if not origem:
+                continue
+            auditadas.append(
+                NotaAuditada(
+                    nota=origem,
+                    dedutivel=item["dedutivel"],
+                    categoria=CategoriaFiscal(item["categoria"]),
+                    beneficiario=Beneficiario(item["beneficiario_provavel"], False, item.get("beneficiario_cpf", "")),
+                    justificativa_legal=item["justificativa_legal"]
+                )
+            )
+        return ExportadorExcelLocal.exportar(auditadas, caminho_xlsx)
