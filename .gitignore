@@ -21,6 +21,8 @@ inspectir/data/auth_state.json
 # Environment
 .env
 .env.*
+.claude
+.specify
 
 # IDE
 .vscode/
